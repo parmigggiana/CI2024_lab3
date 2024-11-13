@@ -1,6 +1,6 @@
-import time
-from puzzle import Action, Board
 import numpy as np
+
+from puzzle import Action, Board
 
 SIZE = 3
 

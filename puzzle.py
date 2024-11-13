@@ -1,8 +1,7 @@
-from re import A
-from typing import Self
-import numpy as np
 from enum import Enum
-from icecream import ic
+from typing import Self
+
+import numpy as np
 
 
 class Action(Enum):

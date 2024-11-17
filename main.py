@@ -5,33 +5,34 @@ Solve lab3
 from path_search import Solver
 from puzzle import Board
 
-random_board = Board(3, 0)
+random_board = Board(5, 0)
+
 instances = [
-    {
+    {  # 6x6 is very slow, 5x5 is almost instant
         "starting_board": random_board,
         "algorithm": "astar",
         "heuristic": "manhattan",
         "plot": False,
     },
-    {
-        "starting_board": random_board,
-        "algorithm": "astar",
-        "heuristic": "hamming",
-        "plot": False,
-    },
-    {
-        "starting_board": random_board,
-        "algorithm": "astar",
-        "heuristic": "dijkstra",
-        "plot": False,
-    },
-    # {
+    # {  # can handle up to random 4x4 in reasonable time (~10x slower than manhattan and ~6x worse solution)
     #     "starting_board": random_board,
+    #     "algorithm": "astar",
+    #     "heuristic": "hamming",
+    #     "plot": False,
+    # },
+    # { # Quite slower for random boards, probably can't handle anything beyond 3x3
+    #     "starting_board": random_board,
+    #     "algorithm": "astar",
+    #     "heuristic": "dijkstra",
+    #     "plot": False,
+    # },
+    # { # Unusable for random boards
+    #     "starting_board": Board([[1, 2, 3], [4, 0, 5], [7, 8, 6]]),
     #     "algorithm": "bfs",
     #     "plot": False,
     # },
-    # {
-    #     "starting_board": random_board,
+    # { # Unusable for random boards
+    #     "starting_board": Board([[1, 2, 3], [4, 0, 5], [7, 8, 6]]),
     #     "algorithm": "dfs",
     #     "plot": False,
     # },
@@ -40,28 +41,31 @@ instances = [
 
 def print_path(path):
     size = path[0].size
+    if (len(path)) > 40:
+        # Just print first and last 20 steps
+        path = path[:20] + path[-20:]
+    max_digits = len(str(size**2))
     s = ["" for _ in range(size)]
-    for node in path:
+    for count, node in enumerate(path):
         for i in range(size):
             if i == size // 2:
-                sep = "  ->  "
+                sep = "   ->  "
+                if count == 20:
+                    sep = "  ...  "
             else:
-                sep = "      "
-            s[i] += " ".join(map(str, node[i])) + sep
+                sep = "       "
+            s[i] += " ".join(f"{num:>{max_digits}}" for num in node[i]) + sep
 
-    print("\n".join([line[:-6] for line in s]))
+    while len(s[0]) > 80:
+        for i in range(size):
+            print(s[i][:80])
+            s[i] = s[i][80:]
+        print()
+    for i in range(size):
+        print(s[i][:-6])
 
 
 def main():
-    # random board, unsolvable with DFS or BFS
-    # p = Board(SIZE, 0)  # get a radom board, unsolvable with DFS or BFS
-
-    # easy test case
-    # p = Board([[1, 2, 3], [4, 0, 5], [7, 8, 6]])  # very easy test case
-
-    # easy for BFS and A*, unsolvable with DFS
-    p = Board([[1, 2, 3], [4, 8, 5], [7, 0, 6]])
-
     for instance in instances:
         print(
             f"Running {instance['algorithm']}"
@@ -71,13 +75,9 @@ def main():
                 else ""
             )
         )
-        # print("Starting board:")
-        # print_path(
-        #     [
-        #         p,
-        #     ]
-        # )
+
         path, quality, cost = Solver(**instance).run()
+
         print(f"Explored {cost} nodes")
         print(f"Solution reached in {quality} steps")
         print_path(path)

@@ -27,8 +27,8 @@ class Board:
     def __init__(self, board: np.ndarray | list[list[int]] | int, seed=0):
         rng = np.random.Generator(np.random.PCG64(seed))
         if isinstance(board, int):
-            if board < 2:
-                raise ValueError("Board size must be at least 2x2")
+            if board < 3:
+                raise ValueError("Board size must be at least 3x3")
             board = np.arange(board**2).reshape(board, board)
             board = rng.permutation(board)
 
@@ -39,6 +39,7 @@ class Board:
         self.size = board.shape[0]
         self.position = tuple(x[0] for x in np.nonzero(board == 0))
         self.valid_actions = self._get_valid_actions()
+        self.quality = 0
 
     def _get_valid_actions(self) -> list[Action]:
         actions = np.zeros((4,), dtype=bool)
@@ -46,11 +47,11 @@ class Board:
         if self.position[0] != 0:
             actions[Action.UP.value] = True
 
-        if self.position[1] != 0:
-            actions[Action.LEFT.value] = True
-
         if self.position[0] != self.size - 1:
             actions[Action.DOWN.value] = True
+
+        if self.position[1] != 0:
+            actions[Action.LEFT.value] = True
 
         if self.position[1] != self.size - 1:
             actions[Action.RIGHT.value] = True
@@ -59,7 +60,7 @@ class Board:
 
     def act(self, action: Action) -> Self:
         if not self.valid_actions[action.value]:
-            raise InvalidMoveError
+            raise InvalidMoveError(f"Trying to move {action} in {self}")
 
         new_pos = (
             self.position[0] + DIRECTIONS[action][0],
@@ -71,7 +72,12 @@ class Board:
             new_board[new_pos],
             new_board[self.position],
         )
-        return Board(new_board)
+        b = Board(new_board)
+        b.quality = self.quality + 1
+        return b
+
+    def __eq__(self, other):
+        return np.array_equal(self.m, other.m)
 
     def __hash__(self):
         return hash(self.m.tobytes())

@@ -44,7 +44,6 @@ class Board:
         self.size = board.shape[0]
         self.position = tuple(x[0] for x in np.nonzero(board == 0))
         self.valid_actions = self._get_valid_actions()
-        self.quality = 0
 
     def _get_valid_actions(self) -> list[Action]:
         actions = np.zeros((4,), dtype=bool)
@@ -78,7 +77,6 @@ class Board:
             new_board[self.position],
         )
         b = Board(new_board)
-        b.quality = self.quality + 1
         return b
 
     def __eq__(self, other):
@@ -107,3 +105,21 @@ class Board:
 
     def __getitem__(self, key):
         return self.m[key]
+
+    def manhattan_distance(self, other: Self) -> int:
+        distance = 0
+        for i in range(self.size):
+            for j in range(self.size):
+                if self.m[i][j] != 0:
+                    x, y = np.nonzero(other.m == self.m[i][j])
+                    x, y = x[0], y[0]
+                    distance += abs(x - i) + abs(y - j)
+        return distance
+
+    def hamming_distance(self, other: Self) -> int:
+        distance = 0
+        for i in range(self.size):
+            for j in range(self.size):
+                if self.m[i][j] != other.m[i][j]:
+                    distance += 1
+        return distance

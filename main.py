@@ -1,24 +1,49 @@
 """
-Solve lab3 by BFS
+Solve lab3
 """
 
-from path_search import BFSSolver, DFSSolver
+from path_search import Solver
 from puzzle import Board
 
-SIZE = 3
+random_board = Board(3, 0)
+instances = [
+    {
+        "starting_board": random_board,
+        "algorithm": "astar",
+        "heuristic": "manhattan",
+        "plot": False,
+    },
+    {
+        "starting_board": random_board,
+        "algorithm": "astar",
+        "heuristic": "hamming",
+        "plot": False,
+    },
+    {
+        "starting_board": random_board,
+        "algorithm": "astar",
+        "heuristic": "dijkstra",
+        "plot": False,
+    },
+    # {
+    #     "starting_board": random_board,
+    #     "algorithm": "bfs",
+    #     "plot": False,
+    # },
+    # {
+    #     "starting_board": random_board,
+    #     "algorithm": "dfs",
+    #     "plot": False,
+    # },
+]
 
 
 def print_path(path):
-    # This is a helper function
-    # Based on SIZE, print the path in a more readable way
-    # For example, if SIZE = 3, the path [[[1, 2, 3], [4, 5, 6], [7, 0, 8]], [[1, 2, 3], [4, 5, 6], [7, 8, 0]]] will be printed as:
-    # 1 2 3      1 2 3
-    # 4 5 6  ->  4 5 6
-    # 7 0 8      7 8 0
-    s = ["" for _ in range(SIZE)]
+    size = path[0].size
+    s = ["" for _ in range(size)]
     for node in path:
-        for i in range(SIZE):
-            if i == SIZE // 2:
+        for i in range(size):
+            if i == size // 2:
                 sep = "  ->  "
             else:
                 sep = "      "
@@ -28,22 +53,35 @@ def print_path(path):
 
 
 def main():
+    # random board, unsolvable with DFS or BFS
     # p = Board(SIZE, 0)  # get a radom board, unsolvable with DFS or BFS
+
+    # easy test case
     # p = Board([[1, 2, 3], [4, 0, 5], [7, 8, 6]])  # very easy test case
-    p = Board([[1, 2, 3], [4, 8, 5], [7, 0, 6]])  # hard for DFS, easy for BFS
 
-    path, quality, cost = BFSSolver(p).run()
-    print("Found a solution with BFS")
-    print(f"Explored {cost} nodes")
-    print(f"Solution reached in {quality} steps")
-    print_path(path)
-    print()
+    # easy for BFS and A*, unsolvable with DFS
+    p = Board([[1, 2, 3], [4, 8, 5], [7, 0, 6]])
 
-    path, quality, cost = DFSSolver(p).run()
-    print("Found a solution with DFS")
-    print(f"Explored {cost} nodes")
-    print(f"Solution reached in {quality} steps")
-    print_path(path)
+    for instance in instances:
+        print(
+            f"Running {instance['algorithm']}"
+            + (
+                f" with {instance['heuristic']}"
+                if instance["algorithm"] == "astar"
+                else ""
+            )
+        )
+        # print("Starting board:")
+        # print_path(
+        #     [
+        #         p,
+        #     ]
+        # )
+        path, quality, cost = Solver(**instance).run()
+        print(f"Explored {cost} nodes")
+        print(f"Solution reached in {quality} steps")
+        print_path(path)
+        print()
 
 
 if __name__ == "__main__":

@@ -1,76 +1,84 @@
 import numpy as np
 from puzzle import Action, Board
 from graph import Graph
+from priorityqueue import PriorityQueue
 
 
-class BFSSolver:
-    def __init__(self, starting_board: Board):
+class Solver:
+    def __init__(
+        self,
+        starting_board: Board,
+        algorithm: str = "astar",
+        heuristic="manhattan",
+        plot=False,
+    ):
+        algorithm = algorithm.lower()
+
+        assert algorithm in ["bfs", "dfs", "astar"]
+        if algorithm == "astar":
+            assert callable(heuristic) or heuristic in [
+                "manhattan",
+                "hamming",
+                "dijkstra",
+            ]
+
         self.board = starting_board
         self.solution = np.arange(self.board.size**2)
-        self.solution = np.roll(self.solution, -1).reshape(
-            self.board.size, self.board.size
+        self.solution = Board(
+            np.roll(self.solution, -1).reshape(self.board.size, self.board.size)
         )
         self.graph = Graph()
+        self.algorithm = algorithm
+        self.plot = plot
+
+        if heuristic:
+            match heuristic.lower():
+                case "manhattan":
+                    self.heuristic = lambda x: x.manhattan_distance(self.solution)
+                case "hamming":
+                    self.heuristic = lambda x: x.hamming_distance(self.solution)
+                case "dijkstra":
+                    self.heuristic = lambda x: 0
+                case _:
+                    self.heuristic = heuristic
 
     def run(self):
-        frontier = []
+        frontier = PriorityQueue()
         explored_nodes = set()
-        p = self.board
-        frontier.append(p)
-        self.graph.add_node(p)
-        cost = 0
+
+        current_board = self.board
+        self.cost = 0
+
+        frontier.push(current_board, 0)
+        self.graph.add_node(current_board)
         while frontier:
-            if np.array_equal(p.m, self.solution):
+            if current_board == self.solution:
                 break
-            p = frontier.pop(0)
-            explored_nodes.add(p)
-            valid_actions = np.nonzero(p.valid_actions)[0]
-            cost += 1
+            current_board = frontier.pop()
+            explored_nodes.add(current_board)
+            valid_actions = np.nonzero(current_board.valid_actions)[0]
+            self.cost += 1
             for action in valid_actions:
-                new: Board = p.act(Action(action))
+                new: Board = current_board.act(Action(action))
                 if new not in explored_nodes and new not in frontier:
-                    frontier.append(new)
-                    self.graph.add_node(new, p)
-                self.graph.add_edge(p, new)
+                    priority = self.get_priority(new)
+                    frontier.push(new, priority)
+                    self.graph.add_node(new, current_board)
+                self.graph.add_edge(current_board, new)
+
         else:
             raise ValueError("No solution found")
 
-        # self.graph.draw()
-        path = self.graph.find_path(p)
-        return path, len(path) - 1, cost
+        if self.plot:
+            self.graph.draw()
+        path = self.graph.find_path(current_board)
+        return path, len(path) - 1, self.cost
 
-
-class DFSSolver:
-    def __init__(self, starting_board: Board):
-        self.board = starting_board
-        self.solution = np.arange(self.board.size**2)
-        self.solution = np.roll(self.solution, -1).reshape(
-            self.board.size, self.board.size
-        )
-        self.graph = Graph()
-
-    def run(self):
-        frontier = []
-        explored_nodes = set()
-        p = self.board
-        frontier.append(p)
-        self.graph.add_node(p)
-        cost = 0
-        while frontier:
-            if np.array_equal(p.m, self.solution):
-                break
-            p = frontier.pop()
-            explored_nodes.add(p)
-            valid_actions = np.nonzero(p.valid_actions)[0]
-            cost += 1
-            for action in valid_actions:
-                new: Board = p.act(Action(action))
-                if new not in explored_nodes and new not in frontier:
-                    frontier.append(new)
-                    self.graph.add_node(new, p)
-                self.graph.add_edge(p, new)
-        else:
-            raise ValueError("No solution found")
-        # self.graph.draw()
-        path = self.graph.find_path(p)
-        return path, len(path) - 1, cost
+    def get_priority(self, board: Board):
+        match self.algorithm:
+            case "bfs":
+                return -self.cost
+            case "dfs":
+                return 0
+            case "astar":
+                return -1 - self.heuristic(board)

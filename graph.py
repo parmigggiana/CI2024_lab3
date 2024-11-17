@@ -10,8 +10,8 @@ The graph is represented with redundance in two structures:
 The nodes needs to implement __hash__ and __eq__ methods to be used as keys in the neighbors dict.
 """
 
-from typing import TypeVar
 from collections.abc import Hashable
+from typing import TypeVar
 
 T = TypeVar("T", bound=Hashable)
 

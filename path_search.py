@@ -1,7 +1,8 @@
 import numpy as np
-from puzzle import Action, Board
+
 from graph import Graph
 from priorityqueue import PriorityQueue
+from puzzle import Action, Board
 
 
 class Solver:

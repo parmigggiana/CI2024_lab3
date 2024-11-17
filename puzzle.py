@@ -98,13 +98,6 @@ class Board:
     def __hash__(self):
         return hash(self.m.tobytes())
 
-    # def __str__(self):
-    #     s = ""
-    #     for row in self.m:
-    #         s += str(row)[1:-1]
-    #         s += "\n"
-    #     return s[:-1]
-
     def __str__(self):
         return str(self.m)
 

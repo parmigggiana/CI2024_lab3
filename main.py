@@ -2,49 +2,48 @@
 Solve lab3 by BFS
 """
 
-from time import sleep
-import numpy as np
-
-from puzzle import Action, Board
+from path_search import BFSSolver, DFSSolver
+from puzzle import Board
 
 SIZE = 3
 
 
+def print_path(path):
+    # This is a helper function
+    # Based on SIZE, print the path in a more readable way
+    # For example, if SIZE = 3, the path [[[1, 2, 3], [4, 5, 6], [7, 0, 8]], [[1, 2, 3], [4, 5, 6], [7, 8, 0]]] will be printed as:
+    # 1 2 3      1 2 3
+    # 4 5 6  ->  4 5 6
+    # 7 0 8      7 8 0
+    s = ["" for _ in range(SIZE)]
+    for node in path:
+        for i in range(SIZE):
+            if i == SIZE // 2:
+                sep = "  ->  "
+            else:
+                sep = "      "
+            s[i] += " ".join(map(str, node[i])) + sep
+
+    print("\n".join([line[:-6] for line in s]))
+
+
 def main():
-    explored_nodes = set()
+    # p = Board(SIZE, 0)  # get a radom board, unsolvable with DFS or BFS
+    # p = Board([[1, 2, 3], [4, 0, 5], [7, 8, 6]])  # very easy test case
+    p = Board([[1, 2, 3], [4, 8, 5], [7, 0, 6]])  # hard for DFS, easy for BFS
 
-    solution = np.arange(SIZE**2)
-    solution = np.roll(solution, -1).reshape(SIZE, SIZE)
+    path, quality, cost = BFSSolver(p).run()
+    print("Found a solution with BFS")
+    print(f"Explored {cost} nodes")
+    print(f"Solution reached in {quality} steps")
+    print_path(path)
+    print()
 
-    frontier = []
-    cost = 0
-
-    p = Board(SIZE, 0)  # get a radom board
-    frontier.append(p)
-    print(p)
-    while not np.array_equal(p.m, solution) and frontier:
-        p = frontier.pop(0)
-        explored_nodes.add(p)
-        cost += 1
-        valid_actions = np.nonzero(p.valid_actions)[0]
-        for action in valid_actions:
-
-            new: Board = p.act(Action(action))
-            if new not in explored_nodes and new not in frontier:
-                frontier.append(new)
-
-        # print()
-        # print(f"{cost = }")
-        # print(f"{p = }")
-        # print(f"{frontier = }")
-        # print(f"{explored_nodes = }")
-        # sleep(1)
-    print(cost)
-    print(p.quality)
-    print(p)
-    print(explored_nodes)
-    print(Board(solution))
-    print(Board(solution) in explored_nodes)
+    path, quality, cost = DFSSolver(p).run()
+    print("Found a solution with DFS")
+    print(f"Explored {cost} nodes")
+    print(f"Solution reached in {quality} steps")
+    print_path(path)
 
 
 if __name__ == "__main__":

@@ -31,6 +31,11 @@ class Board:
                 raise ValueError("Board size must be at least 3x3")
             board = np.arange(board**2).reshape(board, board)
             board = rng.permutation(board)
+        elif isinstance(board, list) and (
+            not isinstance(board[0], list)
+            or not all(len(row) == len(board) for row in board)
+        ):
+            raise ValueError("Board must be square")
 
         if isinstance(board, list):
             board = np.array(board)
@@ -77,13 +82,28 @@ class Board:
         return b
 
     def __eq__(self, other):
+        if not isinstance(other, Board):
+            return False
         return np.array_equal(self.m, other.m)
 
     def __hash__(self):
         return hash(self.m.tobytes())
+
+    # def __str__(self):
+    #     s = ""
+    #     for row in self.m:
+    #         s += str(row)[1:-1]
+    #         s += "\n"
+    #     return s[:-1]
 
     def __str__(self):
         return str(self.m)
 
     def __repr__(self):
         return str(self)
+
+    def __iter__(self):
+        return iter(self.m)
+
+    def __getitem__(self, key):
+        return self.m[key]

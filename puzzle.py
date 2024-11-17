@@ -27,22 +27,33 @@ class Board:
     def __init__(self, board: np.ndarray | list[list[int]] | int, seed=0):
         rng = np.random.Generator(np.random.PCG64(seed))
         if isinstance(board, int):
-            if board < 3:
-                raise ValueError("Board size must be at least 3x3")
-            board = np.arange(board**2).reshape(board, board)
-            board = rng.permutation(board)
+            if board < 2:
+                raise ValueError("Board size must be at least 2x2")
+            self.size = board
+            self.m = None
+            while (
+                self.m is None
+            ):  # Randomly generate a board until a solvable one is found
+                self.m = rng.permutation(self.size**2).reshape(self.size, self.size)
+                self.position = tuple(x[0] for x in np.nonzero(self.m == 0))
+                if not self.solvable():
+                    self.m = None
         elif isinstance(board, list) and (
             not isinstance(board[0], list)
             or not all(len(row) == len(board) for row in board)
         ):
             raise ValueError("Board must be square")
+        elif isinstance(board, list):
+            self.size = len(board)
+            self.m = np.array(board)
+            self.position = tuple(x[0] for x in np.nonzero(self.m == 0))
+        elif isinstance(board, np.ndarray):
+            self.size = board.shape[0]
+            self.m = board
+            self.position = tuple(x[0] for x in np.nonzero(self.m == 0))
+        else:
+            raise ValueError("Invalid board")
 
-        if isinstance(board, list):
-            board = np.array(board)
-
-        self.m = board
-        self.size = board.shape[0]
-        self.position = tuple(x[0] for x in np.nonzero(board == 0))
         self.valid_actions = self._get_valid_actions()
 
     def _get_valid_actions(self) -> list[Action]:
@@ -123,3 +134,15 @@ class Board:
                 if self.m[i][j] != other.m[i][j]:
                     distance += 1
         return distance
+
+    def solvable(self):
+        inversions = 0
+        for i in range(self.size**2 - 1):
+            x, y = divmod(i, self.size)
+            for j in range(i + 1, self.size**2):
+                a, b = divmod(j, self.size)
+                if self[a][b] != 0 and self[x][y] != 0 and self.m[x][y] > self.m[a][b]:
+                    inversions += 1
+        if self.size % 2 == 0:
+            inversions += self.position[0] + 1
+        return inversions % 2 == 0

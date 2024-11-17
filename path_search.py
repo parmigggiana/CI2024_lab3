@@ -21,6 +21,7 @@ class Solver:
                 "hamming",
                 "dijkstra",
             ]
+        assert starting_board.solvable(), "Puzzle is not solvable"
 
         self.board = starting_board
         self.solution = np.arange(self.board.size**2)
@@ -65,7 +66,6 @@ class Solver:
                     frontier.push(new, priority)
                     self.graph.add_node(new, current_board)
                 self.graph.add_edge(current_board, new)
-
         else:
             raise ValueError("No solution found")
 

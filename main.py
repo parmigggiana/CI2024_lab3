@@ -17,7 +17,7 @@ from puzzle import Board
 SIZE = 4
 HISTORY_PATH = "history.txt"
 FORCE_HYPERPARAMETERS_SEARCH = True
-PLOT = False
+PLOT = True
 
 
 random_board = Board(SIZE, 0)
@@ -116,29 +116,21 @@ def find_best_hyperparameters():
     # Save all of them to a file
     # plot the results in a 3D heatmap, one for cost and one for quality
     # TODO add multiprocessing
-    history = []
-    for i in trange(500):  # Should be less than an hour in 4x4
-        if i % 20 == 0:
+    for i in trange(300):  # Should be less than an hour in 4x4
+        if i % 10 == 0:
             random_board = Board(np.random.randint(3, 6), 42)
         weights = [np.random.uniform(*r) for r in ranges]
         instance = {
             "starting_board": random_board,
             "algorithm": "astar",
-            "heuristic": improved_manhattan(SIZE, weights),
+            "heuristic": improved_manhattan(random_board.size, weights),
             "plot": False,
         }
         _, quality, cost = Solver(**instance).run()
-        history.append((*weights, quality, cost))
 
-    # save the history to a file
-    with open(HISTORY_PATH, "a+") as f:
-        writer = csv.writer(f)
-        writer.writerow(
-            ["Manhattan_W", "Conflicts_W", "Inversions_W", "Quality", "Cost"]
-        )
-        writer.writerows(history)
-
-    return history
+        with open(HISTORY_PATH, "a+") as f:
+            writer = csv.writer(f)
+            writer.writerow((*weights, quality, cost))
 
 
 def plot_hyperparameters(history: pd.DataFrame):
@@ -179,11 +171,17 @@ def plot_hyperparameters(history: pd.DataFrame):
 if __name__ == "__main__":
     import pandas as pd
 
-    if not Path(HISTORY_PATH).exists() or FORCE_HYPERPARAMETERS_SEARCH:
+    if not Path(HISTORY_PATH).exists():
+        with open(HISTORY_PATH, "w") as f:
+            csv.writer(f).writerow(
+                ["Manhattan_W", "Conflicts_W", "Inversions_W", "Quality", "Cost"]
+            )
+        find_best_hyperparameters()
+    elif FORCE_HYPERPARAMETERS_SEARCH:
         find_best_hyperparameters()
 
     with open(HISTORY_PATH, "r") as f:
-        history = pd.read_csv(f)
+        history = pd.read_csv(f, dtype={0: float, 1: float, 2: float, 3: int, 4: int})
 
     if PLOT:
         plot_hyperparameters(history)

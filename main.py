@@ -3,12 +3,14 @@ Solve lab3
 """
 
 import csv
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from math import sqrt
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
+import tqdm
 from matplotlib import cm
-from math import sqrt
-from tqdm import trange
 
 from custom_heuristics import improved_manhattan
 from path_search import Solver
@@ -16,7 +18,7 @@ from puzzle import Board
 
 SIZE = 4
 HISTORY_PATH = "history.txt"
-FORCE_HYPERPARAMETERS_SEARCH = True
+FORCE_PARAMETERS_SEARCH = False
 PLOT = True
 
 
@@ -104,37 +106,49 @@ def main():
         print()
 
 
-def find_best_hyperparameters():
-    import numpy as np
+def thread_main(weights, board):
+    instance = {
+        "starting_board": board,
+        "algorithm": "astar",
+        "heuristic": improved_manhattan(random_board.size, weights),
+        "plot": False,
+    }
+
+    def run_solver(instance):
+        _, quality, cost = Solver(**instance).run()
+        return quality, cost, weights, board.size
+
+    return run_solver(instance)
+
+
+def explore_parameters(iters=10):
 
     ranges = [
         (1, 2),
         (0, 2),
         (0, 2),
     ]
-    # TODO add multiprocessing
-    print("Starting hyperparameters search - press Ctrl+C to stop")
-    try:
-        for i in trange(50):
-            if i % 10 == 0:
-                random_board = Board(np.random.randint(3, 6), 42)
-            weights = [np.random.uniform(*r) for r in ranges]
-            instance = {
-                "starting_board": random_board,
-                "algorithm": "astar",
-                "heuristic": improved_manhattan(random_board.size, weights),
-                "plot": False,
-            }
-            _, quality, cost = Solver(**instance).run()
 
-            with open(HISTORY_PATH, "a+") as f:
-                writer = csv.writer(f)
-                writer.writerow((*weights, quality, cost, random_board.size))
-    except KeyboardInterrupt:
-        print("Hyperparameters search stopped")
+    futures: list = []
+    with tqdm.tqdm(desc=f"Solving {iters} random problems", total=iters) as pbar:
+        with ThreadPoolExecutor() as executor:
+            for i in range(iters):
+                if i % 5 == 0:
+                    random_board = Board(np.random.randint(3, 5), 42)
+                weights = [np.random.uniform(*r) for r in ranges]
+
+                t = executor.submit(thread_main(weights, random_board))
+                futures.append(t)
+
+            for future in as_completed(fs=[f[0] for f in futures]):
+                quality, cost, weights, size = future.result()
+                with open(HISTORY_PATH, "a+") as f:
+                    writer = csv.writer(f)
+                    writer.writerow((*weights, quality, cost, size))
+                pbar.update(1)
 
 
-def plot_hyperparameters(history: pd.DataFrame):
+def plot_history(history: pd.DataFrame):
     import matplotlib.pyplot as plt
 
     # Normalize the data separately for each Size
@@ -166,14 +180,14 @@ def plot_hyperparameters(history: pd.DataFrame):
         history.iloc[:, 1],
         history.iloc[:, 2],
         c=history.iloc[:, 3],
-        cmap=cm.viridis,
+        cmap=cm.Spectral,
     )
     img2 = cost_ax.scatter(
         history.iloc[:, 0],
         history.iloc[:, 1],
         history.iloc[:, 2],
         c=history.iloc[:, 4],
-        cmap=cm.viridis,
+        cmap=cm.Spectral,
     )
     fig.colorbar(img1, ax=qual_ax)
     fig.colorbar(img2, ax=cost_ax)
@@ -181,8 +195,6 @@ def plot_hyperparameters(history: pd.DataFrame):
 
 
 if __name__ == "__main__":
-    import pandas as pd
-
     if not Path(HISTORY_PATH).exists():
         with open(HISTORY_PATH, "w") as f:
             csv.writer(f).writerow(
@@ -195,9 +207,9 @@ if __name__ == "__main__":
                     "Size",
                 ]
             )
-        find_best_hyperparameters()
-    elif FORCE_HYPERPARAMETERS_SEARCH:
-        find_best_hyperparameters()
+        explore_parameters(50)
+    elif FORCE_PARAMETERS_SEARCH:
+        explore_parameters(50)
 
     with open(HISTORY_PATH, "r") as f:
         history = pd.read_csv(
@@ -205,4 +217,4 @@ if __name__ == "__main__":
         )
 
     if PLOT:
-        plot_hyperparameters(history)
+        plot_history(history)

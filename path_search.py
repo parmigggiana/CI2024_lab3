@@ -33,7 +33,7 @@ class Solver:
         self.algorithm = algorithm
         self.plot = plot
 
-        if heuristic:
+        if isinstance(heuristic, str):
             match heuristic.lower():
                 case "manhattan":
                     self.heuristic = lambda x: x.manhattan_distance(self.solution)
@@ -41,8 +41,8 @@ class Solver:
                     self.heuristic = lambda x: x.hamming_distance(self.solution)
                 case "dijkstra":
                     self.heuristic = lambda x: 0
-                case _:
-                    self.heuristic = heuristic
+        else:
+            self.heuristic = heuristic
 
     def run(self):
         frontier = PriorityQueue()

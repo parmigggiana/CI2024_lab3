@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from math import sqrt
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tqdm
@@ -149,8 +150,6 @@ def explore_parameters(iters=10):
 
 
 def plot_history(history: pd.DataFrame):
-    import matplotlib.pyplot as plt
-
     # Normalize the data separately for each Size
     for size in history.iloc[:, 5].unique():
         # Ignore weights, only normalize columns 3 and 4

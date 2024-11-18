@@ -114,11 +114,11 @@ def thread_main(weights, board):
         "plot": False,
     }
 
-    def run_solver(instance):
+    def run_solver():
         _, quality, cost = Solver(**instance).run()
         return quality, cost, weights, board.size
 
-    return run_solver(instance)
+    return run_solver
 
 
 def explore_parameters(iters=10):
@@ -135,12 +135,12 @@ def explore_parameters(iters=10):
             for i in range(iters):
                 if i % 5 == 0:
                     random_board = Board(np.random.randint(3, 5), 42)
-                weights = [np.random.uniform(*r) for r in ranges]
+                weights: list[float] = [np.random.uniform(*r) for r in ranges]
 
                 t = executor.submit(thread_main(weights, random_board))
                 futures.append(t)
 
-            for future in as_completed(fs=[f[0] for f in futures]):
+            for future in as_completed(fs=futures):
                 quality, cost, weights, size = future.result()
                 with open(HISTORY_PATH, "a+") as f:
                     writer = csv.writer(f)

@@ -18,7 +18,7 @@ from puzzle import Board
 
 SIZE = 4
 HISTORY_PATH = "history.txt"
-FORCE_PARAMETERS_SEARCH = False
+FORCE_PARAMETERS_SEARCH = True
 PLOT = True
 
 
@@ -110,7 +110,7 @@ def thread_main(weights, board):
     instance = {
         "starting_board": board,
         "algorithm": "astar",
-        "heuristic": improved_manhattan(random_board.size, weights),
+        "heuristic": improved_manhattan(board.size, weights),
         "plot": False,
     }
 
@@ -207,9 +207,9 @@ if __name__ == "__main__":
                     "Size",
                 ]
             )
-        explore_parameters(50)
+        explore_parameters(10)
     elif FORCE_PARAMETERS_SEARCH:
-        explore_parameters(50)
+        explore_parameters(100)
 
     with open(HISTORY_PATH, "r") as f:
         history = pd.read_csv(

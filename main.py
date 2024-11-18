@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 from matplotlib import cm
-from numpy import sqrt
+from math import sqrt
 from tqdm import trange
 
 from custom_heuristics import improved_manhattan
@@ -112,29 +112,41 @@ def find_best_hyperparameters():
         (0, 2),
         (0, 2),
     ]
-    # Try 100 random sets of hyperparameters
-    # Save all of them to a file
-    # plot the results in a 3D heatmap, one for cost and one for quality
     # TODO add multiprocessing
-    for i in trange(300):  # Should be less than an hour in 4x4
-        if i % 10 == 0:
-            random_board = Board(np.random.randint(3, 6), 42)
-        weights = [np.random.uniform(*r) for r in ranges]
-        instance = {
-            "starting_board": random_board,
-            "algorithm": "astar",
-            "heuristic": improved_manhattan(random_board.size, weights),
-            "plot": False,
-        }
-        _, quality, cost = Solver(**instance).run()
+    print("Starting hyperparameters search - press Ctrl+C to stop")
+    try:
+        for i in trange(50):
+            if i % 10 == 0:
+                random_board = Board(np.random.randint(3, 6), 42)
+            weights = [np.random.uniform(*r) for r in ranges]
+            instance = {
+                "starting_board": random_board,
+                "algorithm": "astar",
+                "heuristic": improved_manhattan(random_board.size, weights),
+                "plot": False,
+            }
+            _, quality, cost = Solver(**instance).run()
 
-        with open(HISTORY_PATH, "a+") as f:
-            writer = csv.writer(f)
-            writer.writerow((*weights, quality, cost))
+            with open(HISTORY_PATH, "a+") as f:
+                writer = csv.writer(f)
+                writer.writerow((*weights, quality, cost, random_board.size))
+    except KeyboardInterrupt:
+        print("Hyperparameters search stopped")
 
 
 def plot_hyperparameters(history: pd.DataFrame):
     import matplotlib.pyplot as plt
+
+    # Normalize the data separately for each Size
+    for size in history.iloc[:, 5].unique():
+        # Ignore weights, only normalize columns 3 and 4
+        history.loc[history.iloc[:, 5] == size, ["Quality", "Cost"]] = (
+            history.loc[history.iloc[:, 5] == size, ["Quality", "Cost"]]
+            - history.loc[history.iloc[:, 5] == size, ["Quality", "Cost"]].min()
+        ) / (
+            history.loc[history.iloc[:, 5] == size, ["Quality", "Cost"]].max()
+            - history.loc[history.iloc[:, 5] == size, ["Quality", "Cost"]].min()
+        )
 
     fig = plt.figure()
     cost_ax: plt.axes = fig.add_subplot(121, projection="3d")
@@ -154,14 +166,14 @@ def plot_hyperparameters(history: pd.DataFrame):
         history.iloc[:, 1],
         history.iloc[:, 2],
         c=history.iloc[:, 3],
-        cmap=cm.magma,
+        cmap=cm.viridis,
     )
     img2 = cost_ax.scatter(
         history.iloc[:, 0],
         history.iloc[:, 1],
         history.iloc[:, 2],
         c=history.iloc[:, 4],
-        cmap=cm.magma,
+        cmap=cm.viridis,
     )
     fig.colorbar(img1, ax=qual_ax)
     fig.colorbar(img2, ax=cost_ax)
@@ -174,14 +186,23 @@ if __name__ == "__main__":
     if not Path(HISTORY_PATH).exists():
         with open(HISTORY_PATH, "w") as f:
             csv.writer(f).writerow(
-                ["Manhattan_W", "Conflicts_W", "Inversions_W", "Quality", "Cost"]
+                [
+                    "Manhattan_W",
+                    "Conflicts_W",
+                    "Inversions_W",
+                    "Quality",
+                    "Cost",
+                    "Size",
+                ]
             )
         find_best_hyperparameters()
     elif FORCE_HYPERPARAMETERS_SEARCH:
         find_best_hyperparameters()
 
     with open(HISTORY_PATH, "r") as f:
-        history = pd.read_csv(f, dtype={0: float, 1: float, 2: float, 3: int, 4: int})
+        history = pd.read_csv(
+            f, dtype={0: float, 1: float, 2: float, 3: float, 4: float, 5: int}
+        )
 
     if PLOT:
         plot_hyperparameters(history)

@@ -18,7 +18,7 @@ from puzzle import Board
 
 SIZE = 4
 HISTORY_PATH = "history.txt"
-FORCE_PARAMETERS_SEARCH = True
+FORCE_PARAMETERS_SEARCH = False
 PLOT = True
 
 
@@ -161,36 +161,42 @@ def plot_history(history: pd.DataFrame):
             history.loc[history.iloc[:, 5] == size, ["Quality", "Cost"]].max()
             - history.loc[history.iloc[:, 5] == size, ["Quality", "Cost"]].min()
         )
+        filtered_history = history.loc[history.iloc[:, 5] == size]
 
-    fig = plt.figure()
-    cost_ax: plt.axes = fig.add_subplot(121, projection="3d")
-    cost_ax.set_title("Cost")
-    cost_ax.set_xlabel("Manhattan")
-    cost_ax.set_ylabel("Conflicts")
-    cost_ax.set_zlabel("Inversions")
+        fig = plt.figure(size)
+        fig.suptitle("Lower is better")
+        fig.canvas.manager.set_window_title(f"{size}x{size} board")
+        cost_ax: plt.axes = fig.add_subplot(121, projection="3d")
+        cost_ax.set_title("Cost")
+        cost_ax.set_xlabel("Manhattan")
+        cost_ax.set_ylabel("Conflicts")
+        cost_ax.set_zlabel("Inversions")
 
-    qual_ax: plt.axes = fig.add_subplot(122, projection="3d")
-    qual_ax.set_title("Quality")
-    qual_ax.set_xlabel("Manhattan")
-    qual_ax.set_ylabel("Conflicts")
-    qual_ax.set_zlabel("Inversions")
+        qual_ax: plt.axes = fig.add_subplot(122, projection="3d")
+        qual_ax.set_title("Quality")
+        qual_ax.set_xlabel("Manhattan")
+        qual_ax.set_ylabel("Conflicts")
+        qual_ax.set_zlabel("Inversions")
 
-    img1 = qual_ax.scatter(
-        history.iloc[:, 0],
-        history.iloc[:, 1],
-        history.iloc[:, 2],
-        c=history.iloc[:, 3],
-        cmap=cm.Spectral,
-    )
-    img2 = cost_ax.scatter(
-        history.iloc[:, 0],
-        history.iloc[:, 1],
-        history.iloc[:, 2],
-        c=history.iloc[:, 4],
-        cmap=cm.Spectral,
-    )
-    fig.colorbar(img1, ax=qual_ax)
-    fig.colorbar(img2, ax=cost_ax)
+        img1 = qual_ax.scatter(
+            filtered_history.iloc[:, 0],
+            filtered_history.iloc[:, 1],
+            filtered_history.iloc[:, 2],
+            c=filtered_history.iloc[:, 3],
+            cmap=cm.Spectral,
+        )
+        img2 = cost_ax.scatter(
+            filtered_history.iloc[:, 0],
+            filtered_history.iloc[:, 1],
+            filtered_history.iloc[:, 2],
+            c=filtered_history.iloc[:, 4],
+            cmap=cm.Spectral,
+        )
+        fig.colorbar(
+            mappable=img1, ax=[qual_ax, cost_ax], location="bottom", shrink=0.6
+        )
+        # fig.colorbar(img2, ax=cost_ax)
+        # plt.show(block=False)
     plt.show()
 
 
@@ -209,7 +215,7 @@ if __name__ == "__main__":
             )
         explore_parameters(10)
     elif FORCE_PARAMETERS_SEARCH:
-        explore_parameters(100)
+        explore_parameters(50)
 
     with open(HISTORY_PATH, "r") as f:
         history = pd.read_csv(

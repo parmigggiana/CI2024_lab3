@@ -134,7 +134,7 @@ def explore_parameters(iters=10):
         with ThreadPoolExecutor() as executor:
             for i in range(iters):
                 if i % 5 == 0:
-                    random_board = Board(np.random.randint(3, 5), 42)
+                    random_board = Board(np.random.randint(3, 6), 42)
                 weights: list[float] = [np.random.uniform(*r) for r in ranges]
 
                 t = executor.submit(thread_main(weights, random_board))

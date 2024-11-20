@@ -7,10 +7,19 @@ from puzzle import Board
 # 0 1 2 3
 # 1 4 5 6
 # 2 7 8 9
-def improved_manhattan(board_size, weights=[1, 1, 1]):
+def improved_manhattan(board_size, weights=None):
     solution = np.arange(board_size**2)
     solution = np.roll(solution, -1).reshape(board_size, board_size)
     solution = Board(solution)
+
+    if weights is None:
+        match board_size:
+            case 3:
+                weights = [1, 0, 2]
+            case 4:
+                weights = [1, 1, 1]
+            case 5:
+                weights = [1, 1, 1]
 
     def manhattan(board: Board):
         return board.manhattan_distance(solution)

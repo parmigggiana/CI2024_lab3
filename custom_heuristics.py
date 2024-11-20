@@ -17,7 +17,7 @@ def improved_manhattan(board_size, weights=None):
             case 3:
                 weights = [1, 0, 2]
             case 4:
-                weights = [1, 1, 1]
+                weights = [0.9, 0.25, 1.5]
             case 5:
                 weights = [1, 1, 1]
 
@@ -25,31 +25,34 @@ def improved_manhattan(board_size, weights=None):
         return board.manhattan_distance(solution)
 
     def linear_conflicts(board: Board):
+        size = board.size
         conflicts = 0
-        for row in range(board.size):
-            for column in range(board.size):
-                if board[row][column] == 0:
+
+        # Check for row conflicts
+        for row in range(size):
+            for col in range(size):
+                tile = board[row][col]
+                if tile == 0:
                     continue
-                # check if board[i][j] is in the correct column
-                if board[row][column] % board.size == column - 1:
-                    for i in range(row, board.size):
-                        if board[i][column] == 0:
+
+                # Check if the tile is in the correct row
+                if (tile - 1) // size == row:
+                    for i in range(col + 1, size):
+                        other_tile = board[row][i]
+                        if other_tile == 0:
                             continue
-                        if (
-                            board[row][column] % board.size != column - 1
-                            and board[row][column] > board[i][column]
-                        ):
+                        if (other_tile - 1) // size == row and tile > other_tile:
                             conflicts += 1
 
-                # check if board[i][j] is in the correct row
-                if (board[row][column] - 1) // board.size == row:
-                    for i in range(column, board.size):
-                        if board[row][i] == 0:
+                # Check if the tile is in the correct column
+                if tile % size == col - 1:
+                    for i in range(row + 1, size):
+                        other_tile = board[i][col]
+                        if other_tile == 0:
                             continue
-                        if (board[row][column] - 1) // board.size != row and board[row][
-                            column
-                        ] > board[row][i]:
+                        if other_tile % size == col and tile > other_tile:
                             conflicts += 1
+
         return conflicts
 
     def inversions(board: Board):

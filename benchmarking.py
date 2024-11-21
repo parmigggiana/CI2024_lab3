@@ -41,13 +41,13 @@ def run_benchmark(iters, board_size, seed=0):
 
 
 def main():
-    quality_3, cost_3 = run_benchmark(1000, 3, None)
+    quality_3, cost_3 = run_benchmark(5000, 3, None)
     print("3x3 Benchmark:")
     print(f"\tAvg Quality: {quality_3:.2f}\n\tAvg Cost: {cost_3:.2f}")
-    quality_4, cost_4 = run_benchmark(100, 4, None)
+    quality_4, cost_4 = run_benchmark(1000, 4, None)
     print("4x4 Benchmark:")
     print(f"\tAvg Quality: {quality_4:.2f}\n\tAvg Cost: {cost_4:.2f}")
-    quality_5, cost_5 = run_benchmark(10, 5, None)
+    quality_5, cost_5 = run_benchmark(50, 5, None)
     print("5x5 Benchmark:")
     print(f"\tAvg Quality: {quality_5:.2f}\n\tAvg Cost: {cost_5:.2f}")
 

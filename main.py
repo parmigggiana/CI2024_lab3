@@ -21,28 +21,36 @@ instances = [
         "heuristic": improved_manhattan(3),
         "plot": False,
     },
-    # {  # can handle up to random 4x4 in reasonable time (~10x slower than manhattan and ~6x worse solution)
-    #     "starting_board": random_board,
-    #     "algorithm": "astar",
-    #     "heuristic": "hamming",
-    #     "plot": False,
-    # },
-    # { # Quite slower for random boards, probably can't handle anything beyond 3x3
-    #     "starting_board": random_board,
-    #     "algorithm": "astar",
-    #     "heuristic": "dijkstra",
-    #     "plot": False,
-    # },
-    # { # Unusable for random boards
-    #     "starting_board": Board([[1, 2, 3], [4, 0, 5], [7, 8, 6]]),
-    #     "algorithm": "bfs",
-    #     "plot": False,
-    # },
-    # { # Unusable for random boards
-    #     "starting_board": Board([[1, 2, 3], [4, 0, 5], [7, 8, 6]]),
-    #     "algorithm": "dfs",
-    #     "plot": False,
-    # },
+    {
+        "starting_board": Board(4, SEED),
+        "algorithm": "astar",
+        "heuristic": "manhattan",
+        "plot": False,
+    },
+    {
+        "starting_board": Board(4, SEED),
+        "algorithm": "astar",
+        "heuristic": improved_manhattan(4),
+        "plot": False,
+    },
+    {
+        "starting_board": Board(5, SEED),
+        "algorithm": "astar",
+        "heuristic": "manhattan",
+        "plot": False,
+    },
+    {
+        "starting_board": Board(5, SEED),
+        "algorithm": "astar",
+        "heuristic": improved_manhattan(5),
+        "plot": False,
+    },
+    {
+        "starting_board": Board(6, SEED),
+        "algorithm": "astar",
+        "heuristic": improved_manhattan(6),
+        "plot": False,
+    },
 ]
 
 

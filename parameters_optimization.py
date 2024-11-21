@@ -1,8 +1,8 @@
 import csv
-import ctypes
 import sys
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import CancelledError, Future, ProcessPoolExecutor, as_completed
 from pathlib import Path
+
 from typing import Iterable
 
 import matplotlib.pyplot as plt
@@ -10,19 +10,18 @@ import mpltern  # noqa
 import numpy as np
 import pandas as pd
 import tqdm
-from matplotlib import cm
 
 from custom_heuristics import improved_manhattan
 from path_search import Solver
 from puzzle import Board
 
 FILENAME = "history.csv"
-ITERATIONS = 20000
-BOARD_SIZE = 3
-TIMEOUT = 1  # Some problems take too long to solve or don't converge, likely due to the heuristic being not acceptable with the given weights. Safe values on my machine are 5 for 4x4 and 30 for 5x5
+SAMPLES = 1500
+BOARD_SIZE = 4
+TIMEOUT = 20  # Some problems take too long to solve or don't converge, likely due to the heuristic being not acceptable with the given weights. Safe values on my machine are 20 for 4x4 and 500 for 5x5
 
 
-def process_main(weights, board, name):
+def process_main(weights, board):
     instance = {
         "starting_board": board,
         "algorithm": "astar",
@@ -30,7 +29,7 @@ def process_main(weights, board, name):
         "plot": False,
     }
     _, quality, cost = Solver(**instance).run()
-    return quality, cost, weights, board.size, name
+    return quality, cost, weights, board.size
 
 
 def explore_parameters(samples, filename, board_size, timeout=None):
@@ -39,13 +38,13 @@ def explore_parameters(samples, filename, board_size, timeout=None):
         (0, 1),
         (0, 1),
     ]
-    futures: list = []
+    futures: list[Future] = []
     n = None
     with tqdm.tqdm(
-        desc=f"Trying {samples} random weights", total=samples * board_size
+        desc="Generating exploration space", total=samples * board_size
     ) as pbar:
         with ProcessPoolExecutor() as executor:
-            for i in range(samples):
+            for _ in range(samples):
                 weights: list[float] = [np.random.uniform(*r) for r in ranges]
                 weights = weights / np.sum(weights)
 
@@ -54,25 +53,33 @@ def explore_parameters(samples, filename, board_size, timeout=None):
                 ):  # higher board size has more variability, so we try each weight set a bit more times to average out the board's difficulty
                     random_board = Board(board_size)
                     f = executor.submit(
-                        process_main, weights=weights, board=random_board, name=i
+                        process_main, weights=weights, board=random_board
                     )
                     futures.append(f)
-
+                    pbar.update(1)
+            pbar.reset()
+            pbar.set_description_str(f"Trying {samples} random weights")
             try:
                 for future in as_completed(fs=futures, timeout=timeout * samples):
-                    quality, cost, weights, size, name = future.result()
-                    with open(filename, "a+") as f:
-                        writer = csv.writer(f)
-                        writer.writerow((*weights, quality, cost, size, name))
-                    pbar.update(1)
-            except TimeoutError:  # Just kill the running threads
+                    try:
+                        quality, cost, weights, size = future.result()
+                        with open(filename, "a+") as f:
+                            writer = csv.writer(f)
+                            writer.writerow((*weights, quality, cost, size))
+                    except CancelledError:
+                        pass
+                    finally:
+                        pbar.update(1)
+            except TimeoutError:
+                print("Shutting Down")
+                executor.shutdown(wait=False, cancel_futures=True)
                 n = len([f.cancelled() for f in futures])
-                executor.shutdown(wait=False)
-                for f in executor._processes:
-                    exc = ctypes.py_object(SystemExit)
-                    ctypes.pythonapi.PyThreadState_SetAsyncExc(
-                        ctypes.c_long(f.ident), exc
-                    )
+                print(executor._threads)
+                # for f in executor._threads:
+                #     exc = ctypes.py_object(SystemExit)
+                #     ctypes.pythonapi.PyThreadState_SetAsyncExc(
+                #         ctypes.c_long(f.ident), exc
+                #     )
 
     if n:
         print(f"Skipped {n} iterations due to timeout")
@@ -81,29 +88,32 @@ def explore_parameters(samples, filename, board_size, timeout=None):
 def plot_history(filename, board_size=None):
     with open(filename, "r") as f:
         history = pd.read_csv(
-            f, dtype={0: float, 1: float, 2: float, 3: float, 4: float, 5: int, 6: str}
+            f, dtype={0: float, 1: float, 2: float, 3: float, 4: float, 5: int}
         )
 
     # Normalize the data separately for each Size
-    for size in history.iloc[:, 5].unique():
+    for size in history.loc[:, "Size"].unique():
         # Ignore weights, only normalize columns 3 and 4
-        history.loc[history.iloc[:, 5] == size, ["Quality", "Cost"]] = (
-            history.loc[history.iloc[:, 5] == size, ["Quality", "Cost"]]
-            - history.loc[history.iloc[:, 5] == size, ["Quality", "Cost"]].min()
+        history.loc[history.loc[:, "Size"] == size, ["Quality", "Cost"]] = (
+            history.loc[history.loc[:, "Size"] == size, ["Quality", "Cost"]]
+            - history.loc[history.loc[:, "Size"] == size, ["Quality", "Cost"]].min()
         ) / (
-            history.loc[history.iloc[:, 5] == size, ["Quality", "Cost"]].max()
-            - history.loc[history.iloc[:, 5] == size, ["Quality", "Cost"]].min()
+            history.loc[history.loc[:, "Size"] == size, ["Quality", "Cost"]].max()
+            - history.loc[history.loc[:, "Size"] == size, ["Quality", "Cost"]].min()
         )
-        filtered_history = history.loc[history.iloc[:, 5] == size]
-        filtered_history = filtered_history.groupby("Name").mean()
+        filtered_history = history.loc[history.loc[:, "Size"] == size]
+        filtered_history = (
+            filtered_history.groupby(["Manhattan_W", "Conflicts_W", "Inversions_W"])
+            .mean()
+            .reset_index()
+        )
+        levels = np.linspace(0, 1, 15)
         if (
             size == board_size
             or (isinstance(board_size, Iterable) and size in board_size)
             or board_size is None
         ):
             fig = plt.figure(size, figsize=(25, 22))
-            # fig.suptitle("Lower is better")
-            # fig.supxlabel(f"{filtered_history.shape[0]} samples")
             fig.text(
                 0.5,
                 0.7,
@@ -129,13 +139,12 @@ def plot_history(filename, board_size=None):
                 labelleft=False,
                 labelright=False,
             )
-            cost_ax.scatter(
-                filtered_history.iloc[:, 0],
-                filtered_history.iloc[:, 1],
-                filtered_history.iloc[:, 2],
-                c=filtered_history.iloc[:, 4],
-                cmap=cm.Spectral,
-                alpha=0.8,
+            cost_ax.tricontourf(
+                filtered_history.loc[:, "Manhattan_W"],
+                filtered_history.loc[:, "Conflicts_W"],
+                filtered_history.loc[:, "Inversions_W"],
+                filtered_history.loc[:, "Cost"],
+                levels=levels,
             )
 
             qual_ax: plt.axes = fig.add_subplot(122, projection="ternary")
@@ -155,14 +164,13 @@ def plot_history(filename, board_size=None):
                 labelleft=False,
                 labelright=False,
             )
-
-            img = qual_ax.scatter(
-                filtered_history.iloc[:, 0],
-                filtered_history.iloc[:, 1],
-                filtered_history.iloc[:, 2],
-                c=filtered_history.iloc[:, 3],
-                cmap=cm.Spectral,
-                alpha=0.8,
+            img = qual_ax.tricontourf(
+                filtered_history.loc[:, "Manhattan_W"],
+                filtered_history.loc[:, "Conflicts_W"],
+                filtered_history.loc[:, "Inversions_W"],
+                filtered_history.loc[:, "Quality"],
+                # shading="gouraud",
+                levels=levels,
             )
 
             cb = fig.colorbar(
@@ -206,7 +214,7 @@ def plot_history(filename, board_size=None):
                 bbox_inches="tight",
                 pad_inches=0.3,
             )
-    # plt.show()
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -221,12 +229,11 @@ if __name__ == "__main__":
                         "Quality",
                         "Cost",
                         "Size",
-                        "Name",
                     ]
                 )
         explore_parameters(
             filename=FILENAME,
-            samples=ITERATIONS,
+            samples=SAMPLES,
             board_size=BOARD_SIZE,
             timeout=TIMEOUT,
         )

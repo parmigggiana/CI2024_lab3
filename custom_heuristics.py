@@ -56,15 +56,15 @@ def improved_manhattan(board_size, weights=None):
     if weights is None:
         match board_size:
             case 3:
-                weights = (0.15, 0.78, 0.08)
+                weights = (0.15, 0.75, 0.10)
             case 4:
-                raise NotImplementedError(
-                    "Default weights for 4x4 boards are not implemented"
-                )
+                weights = (0.30, 0.57, 0.14)
             case 5:
                 raise NotImplementedError(
                     "Default weights for 5x5 boards are not implemented"
                 )
+            case _:
+                weights = (0.35, 0.55, 0.10)
 
     return (
         lambda board: board.manhattan_distance(solution) * weights[0]

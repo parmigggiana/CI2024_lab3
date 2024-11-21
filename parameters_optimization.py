@@ -1,32 +1,35 @@
 import csv
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
+import ctypes
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 from typing import Iterable
 
 import matplotlib.pyplot as plt
-from custom_heuristics import improved_manhattan
+import mpltern  # noqa
 import numpy as np
 import pandas as pd
-from path_search import Solver
-from puzzle import Board
 import tqdm
 from matplotlib import cm
 
+from custom_heuristics import improved_manhattan
+from path_search import Solver
+from puzzle import Board
+
 FILENAME = "history.csv"
-ITERATIONS = 100
+ITERATIONS = 874
 BOARD_SIZE = 4
+TIMEOUT = 10  # Some problems take too long to solve or don't converge, likely due to the heuristic being not acceptable with the given weights. Safe values on my machine are 10 for 4x4 and 300 for 5x5
 
 
 def explore_parameters(iters, filename, board_size, seed=0):
     ranges = [
-        (0.5, 2),
-        (0, 2),
-        (0, 2),
+        (0, 1),
+        (0, 1),
+        (0, 1),
     ]
     size = board_size
-
     futures: list = []
     with tqdm.tqdm(desc=f"Solving {iters} random problems", total=iters) as pbar:
         with ThreadPoolExecutor() as executor:
@@ -37,16 +40,29 @@ def explore_parameters(iters, filename, board_size, seed=0):
                     random_board = Board(size, seed)
 
                 weights: list[float] = [np.random.uniform(*r) for r in ranges]
+                weights = weights / np.sum(weights)
 
                 t = executor.submit(thread_main(weights, random_board))
                 futures.append(t)
 
-            for future in as_completed(fs=futures):
-                quality, cost, weights, size = future.result()
-                with open(filename, "a+") as f:
-                    writer = csv.writer(f)
-                    writer.writerow((*weights, quality, cost, size))
-                pbar.update(1)
+            try:
+                for future in as_completed(fs=futures, timeout=TIMEOUT * iters):
+                    quality, cost, weights, size = future.result()
+                    with open(filename, "a+") as f:
+                        writer = csv.writer(f)
+                        writer.writerow((*weights, quality, cost, size))
+                    pbar.update(1)
+            except TimeoutError:  # Just kill the running threads
+                n = len([f.cancelled() for f in futures])
+                executor.shutdown(wait=False)
+                for t in executor._threads:
+                    exc = ctypes.py_object(SystemExit)
+                    ctypes.pythonapi.PyThreadState_SetAsyncExc(
+                        ctypes.c_long(t.ident), exc
+                    )
+
+    if n:
+        print(f"Skipped {n} iterations due to timeout")
 
 
 def plot_history(filename, board_size=None):
@@ -76,35 +92,83 @@ def plot_history(filename, board_size=None):
             fig.suptitle("Lower is better")
             fig.supxlabel(f"{filtered_history.shape[0]} samples")
             fig.canvas.manager.set_window_title(f"{size}x{size} board")
-            cost_ax: plt.axes = fig.add_subplot(121, projection="3d")
-            cost_ax.set_title("Cost")
-            cost_ax.set_xlabel("Manhattan")
-            cost_ax.set_ylabel("Conflicts")
-            cost_ax.set_zlabel("Inversions")
-
-            qual_ax: plt.axes = fig.add_subplot(122, projection="3d")
-            qual_ax.set_title("Quality")
-            qual_ax.set_xlabel("Manhattan")
-            qual_ax.set_ylabel("Conflicts")
-            qual_ax.set_zlabel("Inversions")
-
+            cost_ax = fig.add_subplot(121, projection="ternary")
+            cost_ax.set_title(label="Cost")
+            cost_ax.set_llabel("Conflicts")
+            cost_ax.set_rlabel("Inversions")
+            cost_ax.set_tlabel("Manhattan")
+            cost_ax.tick_params(
+                axis="both",
+                which="both",
+                bottom=False,
+                top=False,
+                left=False,
+                right=False,
+                labelbottom=False,
+                labeltop=False,
+                labelleft=False,
+                labelright=False,
+            )
             cost_ax.scatter(
                 filtered_history.iloc[:, 0],
                 filtered_history.iloc[:, 1],
                 filtered_history.iloc[:, 2],
                 c=filtered_history.iloc[:, 4],
                 cmap=cm.Spectral,
+                alpha=0.8,
             )
+
+            qual_ax: plt.axes = fig.add_subplot(122, projection="ternary")
+            qual_ax.set_title("Quality")
+            qual_ax.set_llabel("Conflicts")
+            qual_ax.set_rlabel("Inversions")
+            qual_ax.set_tlabel("Manhattan")
+            qual_ax.tick_params(
+                axis="both",
+                which="both",
+                bottom=False,
+                top=False,
+                left=False,
+                right=False,
+                labelbottom=False,
+                labeltop=False,
+                labelleft=False,
+                labelright=False,
+            )
+
             img = qual_ax.scatter(
                 filtered_history.iloc[:, 0],
                 filtered_history.iloc[:, 1],
                 filtered_history.iloc[:, 2],
                 c=filtered_history.iloc[:, 3],
                 cmap=cm.Spectral,
+                alpha=0.8,
             )
+
             fig.colorbar(
                 mappable=img, ax=[qual_ax, cost_ax], location="bottom", shrink=0.6
             )
+
+            # Event handler for clicking on either plot
+            def on_click(event):
+                if event.inaxes in [
+                    qual_ax,
+                    cost_ax,
+                ]:  # Check if the click is on either subplot
+                    ax = event.inaxes  # Determine which subplot was clicked
+                    # Get ternary coordinates from Cartesian (mpltern provides this automatically)
+                    a, b, c = ax.transProjection.inverted().transform(
+                        [event.xdata, event.ydata]
+                    )
+                    if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1:  # Valid point check
+                        fig.suptitle(
+                            f"Mahattan: {a:.2f}\nConflicts: {b:.2f}\nInversions: {c:.2f}",
+                            fontsize=12,
+                        )
+                        fig.canvas.draw()  # Redraw the plot to update the annotations
+
+            # Connect the event to the handler
+            fig.canvas.mpl_connect("button_press_event", on_click)
 
     plt.show()
 

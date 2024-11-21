@@ -1,10 +1,20 @@
 from concurrent.futures import ProcessPoolExecutor, as_completed
-
 import tqdm
 
 from custom_heuristics import improved_manhattan
 from path_search import Solver
 from puzzle import Board
+
+
+def process_main(board):
+    instance = {
+        "starting_board": board,
+        "algorithm": "astar",
+        "heuristic": improved_manhattan(board.size),
+        "plot": False,
+    }
+    _, quality, cost = Solver(**instance).run()
+    return quality, cost
 
 
 def run_benchmark(iters, board_size, seed=0):
@@ -18,17 +28,11 @@ def run_benchmark(iters, board_size, seed=0):
             for _ in range(iters):
                 random_board = Board(board_size, seed)
 
-                t = executor.submit(
-                    Solver(
-                        starting_board=random_board,
-                        algorithm="astar",
-                        heuristic=improved_manhattan(board_size),
-                    ).run
-                )
+                t = executor.submit(process_main, board=random_board)
                 futures.append(t)
 
             for future in as_completed(fs=futures):
-                _, quality, cost = future.result()
+                quality, cost = future.result()
                 avg_quality += quality / iters
                 avg_cost += cost / iters
                 pbar.update(1)

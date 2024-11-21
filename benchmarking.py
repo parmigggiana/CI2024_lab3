@@ -1,5 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import tqdm
+
 from custom_heuristics import improved_manhattan
 from path_search import Solver
 from puzzle import Board

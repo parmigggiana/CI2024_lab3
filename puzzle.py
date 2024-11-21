@@ -140,5 +140,5 @@ class Board:
                 if self[a][b] != 0 and self[x][y] != 0 and self.m[x][y] > self.m[a][b]:
                     inversions += 1
         if self.size % 2 == 0:
-            inversions += self.position[0] + 1
+            inversions += self.position[0] + self.position[1] + 1
         return inversions % 2 == 0

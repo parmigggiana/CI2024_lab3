@@ -16,9 +16,9 @@ from path_search import Solver
 from puzzle import Board
 
 FILENAME = "history.csv"
-SAMPLES = 1500
-BOARD_SIZE = 4
-TIMEOUT = 20  # Some problems take too long to solve or don't converge, likely due to the heuristic being not acceptable with the given weights. Safe values on my machine are 20 for 4x4 and 500 for 5x5
+SAMPLES = 10
+BOARD_SIZE = 5
+TIMEOUT = 300  # Some problems take too long to solve or don't converge, likely due to the heuristic being not acceptable with the given weights. Safe values on my machine are 20 for 4x4 and 500 for 5x5
 
 
 def process_main(weights, board):
@@ -168,15 +168,14 @@ def plot_history(filename, board_size=None):
                 filtered_history.loc[:, "Manhattan_W"],
                 filtered_history.loc[:, "Conflicts_W"],
                 filtered_history.loc[:, "Inversions_W"],
-                filtered_history.loc[:, "Quality"],
-                # shading="gouraud",
+                1 - filtered_history.loc[:, "Quality"],
                 levels=levels,
             )
 
             cb = fig.colorbar(
                 mappable=img, ax=[qual_ax, cost_ax], location="bottom", shrink=0.6
             )
-            cb.set_label("Lower is better")
+            # cb.set_label("Lower is better")
             point = fig.text(
                 0.5,
                 0.5,

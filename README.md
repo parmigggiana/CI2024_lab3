@@ -26,7 +26,7 @@ The results can be visualized, with normalization, by running the same file agai
 By clicking somewhere on the plot you can see the precise values for each of the weights
 
 On my machine, I run 
-- 20k 3x3 samples in about 3:25 minutes and chose the weights `(0.15, 0.78, 0.08)`
+- 20k 3x3 samples in 8:35 minutes and chose the weights `(0.15, 0.78, 0.08)`
 - 1k 4x4 iterations
 - TBD
 

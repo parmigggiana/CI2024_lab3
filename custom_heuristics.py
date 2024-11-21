@@ -56,7 +56,7 @@ def improved_manhattan(board_size, weights=None):
     if weights is None:
         match board_size:
             case 3:
-                weights = (0.21, 0.67, 0.12)
+                weights = (0.15, 0.78, 0.08)
             case 4:
                 raise NotImplementedError(
                     "Default weights for 4x4 boards are not implemented"

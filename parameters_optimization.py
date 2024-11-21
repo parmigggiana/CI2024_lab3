@@ -19,7 +19,7 @@ from puzzle import Board
 FILENAME = "history.csv"
 ITERATIONS = 20000
 BOARD_SIZE = 3
-TIMEOUT = None  # Some problems take too long to solve or don't converge, likely due to the heuristic being not acceptable with the given weights. Safe values on my machine are 5 for 4x4 and 30 for 5x5
+TIMEOUT = 1  # Some problems take too long to solve or don't converge, likely due to the heuristic being not acceptable with the given weights. Safe values on my machine are 5 for 4x4 and 30 for 5x5
 
 
 def process_main(weights, board, name):
@@ -96,19 +96,17 @@ def plot_history(filename, board_size=None):
         )
         filtered_history = history.loc[history.iloc[:, 5] == size]
         filtered_history = filtered_history.groupby("Name").mean()
-        print(filtered_history)
-        print(filtered_history.dtypes)
         if (
             size == board_size
             or (isinstance(board_size, Iterable) and size in board_size)
             or board_size is None
         ):
-            fig = plt.figure(size)
+            fig = plt.figure(size, figsize=(25, 22))
             # fig.suptitle("Lower is better")
             # fig.supxlabel(f"{filtered_history.shape[0]} samples")
             fig.text(
                 0.5,
-                0.8,
+                0.7,
                 f"{filtered_history.shape[0]} samples",
                 ha="center",
                 va="center",
@@ -201,10 +199,14 @@ def plot_history(filename, board_size=None):
 
             # Connect the event to the handler
             fig.canvas.mpl_connect("button_press_event", on_click)
+            plt.tight_layout(rect=[0.05, 0.27, 0.95, 0.95])
             plt.savefig(
-                f"plots/{board_size}x{board_size}.jpg", dpi=300, bbox_inches="tight"
+                f"plots/{board_size}x{board_size}.jpg",
+                dpi=300,
+                bbox_inches="tight",
+                pad_inches=0.3,
             )
-    plt.show()
+    # plt.show()
 
 
 if __name__ == "__main__":

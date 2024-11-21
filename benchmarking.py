@@ -1,12 +1,10 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import tqdm
 
 from custom_heuristics import improved_manhattan
 from path_search import Solver
 from puzzle import Board
-
-SEED = 0
 
 
 def run_benchmark(iters, board_size, seed=0):
@@ -16,7 +14,7 @@ def run_benchmark(iters, board_size, seed=0):
     with tqdm.tqdm(
         desc=f"Solving {iters} random {board_size}x{board_size} problems", total=iters
     ) as pbar:
-        with ThreadPoolExecutor() as executor:
+        with ProcessPoolExecutor() as executor:
             for _ in range(iters):
                 random_board = Board(board_size, seed)
 
@@ -39,13 +37,13 @@ def run_benchmark(iters, board_size, seed=0):
 
 
 def main():
-    quality_3, cost_3 = run_benchmark(1000, 3, SEED)
+    quality_3, cost_3 = run_benchmark(1000, 3, None)
     print("3x3 Benchmark:")
     print(f"\tAvg Quality: {quality_3:.2f}\n\tAvg Cost: {cost_3:.2f}")
-    quality_4, cost_4 = run_benchmark(100, 4, SEED)
+    quality_4, cost_4 = run_benchmark(100, 4, None)
     print("4x4 Benchmark:")
     print(f"\tAvg Quality: {quality_4:.2f}\n\tAvg Cost: {cost_4:.2f}")
-    quality_5, cost_5 = run_benchmark(10, 5, SEED)
+    quality_5, cost_5 = run_benchmark(10, 5, None)
     print("5x5 Benchmark:")
     print(f"\tAvg Quality: {quality_5:.2f}\n\tAvg Cost: {cost_5:.2f}")
 

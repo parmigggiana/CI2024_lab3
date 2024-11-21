@@ -1,3 +1,4 @@
+import time
 from enum import Enum
 from typing import Self
 
@@ -24,8 +25,10 @@ class InvalidMoveError(Exception):
 
 
 class Board:
-    def __init__(self, board: np.ndarray | list[list[int]] | int, seed=0):
-        rng = np.random.Generator(np.random.PCG64(seed))
+    def __init__(self, board: np.ndarray | list[list[int]] | int, seed=None):
+        if seed is None:
+            seed = time.time_ns()
+        rng = np.random.Generator(np.random.PCG64(seed=seed))
         if isinstance(board, int):
             if board < 2:
                 raise ValueError("Board size must be at least 2x2")

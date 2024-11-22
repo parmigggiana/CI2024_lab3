@@ -25,7 +25,18 @@ class InvalidMoveError(Exception):
 
 
 class Board:
-    def __init__(self, board: np.ndarray | list[list[int]] | int, seed=None):
+    def __init__(
+        self,
+        board: np.ndarray | list[list[int]] | int,
+        seed: int = None,
+        random_steps: int = None,
+    ):
+        """Create a board state for the n-puzzle problem.
+        If board is given as list or array, the other arguments are ignored.
+        If it's given as an integer, a random board is generated.
+        Providing a seed will make the generation deterministic.
+        If random_steps is given, the board will be obtained by making random_steps random moves from the solved state instead of generating a totally random permutation.
+        """
         if seed is None:
             seed = time.time_ns()
         rng = np.random.Generator(np.random.PCG64(seed=seed))
@@ -34,6 +45,18 @@ class Board:
                 raise ValueError("Board size must be at least 2x2")
             self.size = board
             self.m = None
+
+            if random_steps is not None:
+                self.m = np.arange(self.size**2)
+                self.m = np.roll(self.m, -1).reshape(self.size, self.size)
+                for _ in range(random_steps):
+                    self.position = tuple(x[0] for x in np.nonzero(self.m == 0))
+                    self.valid_actions = self._get_valid_actions()
+                    action = rng.choice(
+                        [a for a, v in enumerate(self.valid_actions) if v]
+                    )
+                    self.m = self.act(Action(action)).m
+
             while (
                 self.m is None
             ):  # Randomly generate a board until a solvable one is found
@@ -41,6 +64,7 @@ class Board:
                 self.position = tuple(x[0] for x in np.nonzero(self.m == 0))
                 if not self.solvable():
                     self.m = None
+
         elif isinstance(board, list) and (
             not isinstance(board[0], list)
             or not all(len(row) == len(board) for row in board)

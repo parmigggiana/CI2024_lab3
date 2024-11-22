@@ -26,17 +26,10 @@ This can be done by running
 ```sh
 python parameters_optimization.py
 ```
-
-by configuring the constants `ITERATIONS` and `BOARD_SIZE` in the file.
+after configuring the constants `ITERATIONS` and `BOARD_SIZE` in the file.
 
 The results can be visualized, with normalization, by running the same file again with option `-p` or `--plot`. If you don't want to run new tests, also add `-s` or `--skip`
 By clicking somewhere on the plot you can see the precise values for each of the weights
-
-On my machine, I run
-
-- 20k 3x3 samples
-- 1k 4x4 iterations
-- TBD
 
 After evaluating the outputs, which can be found in `plots/`, I chose the weights `(0.15, 0.75, 0.10)`
 
@@ -47,7 +40,6 @@ You can run some samples by calling
 ```sh
 python main.py
 ```
-
 which has some pre-configured instances.
 
 ## Benchmarking
@@ -77,4 +69,11 @@ Solving 50 random 5x5 problems: 100%|██████████████�
 
 ## Implementation details
 
-TBD
+- `puzzle.Board` - Contains all the logic for a generic n-puzzle state, including the generation of a random problem (by default using a permutation and checking for solvability, optionally with a number of random steps from the solution)
+- `path_search.Solver` - Contains all the logic for the path optimization, with different algorithms and heuristics in the case of A*
+- `priorityqueue.PriorityQueue` - Implements a simple priority queue for use in the Solver
+- `graph.Graph` - Implements a graph data structure. It's NOT memory efficient, but it holds the data in such a way to resemble a tree-structure, which can be seen by calling the `draw` method. It's useless for big graphs, it was intended to be used for debugging the path search algorithms in the early stage.
+- `custom_heuristics.py` - Defines two more heuristics, specific to the n-puzzle problem. The third function, `improved_manhattan`, combines these two with the manhattan distance. It contains default weights which can be overwritten.
+- `parameters_optimization.py` - Can be ran to randomly generate weights for `improved_manhattan`, test them against random boards and save the result in the file `history.csv`. By adding the `-p` parameter it plots the results (both on-screen and in a file in `plots/`)
+- `benchmarking.py` - Can be ran to test the default weights against many random problems and prints average quality and cost for each tested board size.
+- `main.py` - Contains a couple of samples to compare the proposed heuristic with the default weights against simple manhattan distance, complete with pretty-printing of the found paths (long paths are truncated in the middle)

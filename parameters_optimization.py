@@ -168,7 +168,7 @@ def plot_history(filename, board_size=None):
                 filtered_history.loc[:, "Manhattan_W"],
                 filtered_history.loc[:, "Conflicts_W"],
                 filtered_history.loc[:, "Inversions_W"],
-                1 - filtered_history.loc[:, "Quality"],
+                filtered_history.loc[:, "Quality"],
                 levels=levels,
             )
 

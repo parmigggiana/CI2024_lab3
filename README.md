@@ -9,6 +9,10 @@ The implemented algorithms are:
 
 DFS and BFS can't handle random problems in reasonable time.
 
+> [!NOTE] 
+> Through the whole repository I use the terms quality for the number of steps in the final solution and cost for the total number of states evaluated. 
+> This means in all cases lower is better for both.
+
 ## Heuristics
 
 For the A\* algorithm (which pretty much always outperforms the others) there's a couple different heuristics implemented:

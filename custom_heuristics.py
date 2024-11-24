@@ -57,12 +57,8 @@ def improved_manhattan(board_size, weights=None):
         match board_size:
             case 3:
                 weights = (0.15, 0.75, 0.10)
-            case 4:
-                weights = (0.30, 0.57, 0.14)
-            case 5:
-                weights = (0.35, 0.55, 0.10)
             case _:
-                weights = (0.4, 0.50, 0.10)
+                weights = (0.30, 0.55, 0.15)
 
     return (
         lambda board: board.manhattan_distance(solution) * weights[0]

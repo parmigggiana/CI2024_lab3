@@ -1,3 +1,5 @@
+from concurrent.futures import CancelledError
+
 import numpy as np
 
 from graph import Graph
@@ -56,6 +58,8 @@ class Solver:
         while frontier:
             if current_board == self.solution:
                 break
+            if self.not_converging():
+                raise CancelledError("Not converging")
             current_board = frontier.pop()
             explored_nodes.add(current_board)
             valid_actions = np.nonzero(current_board.valid_actions)[0]
@@ -83,3 +87,12 @@ class Solver:
                 return 0
             case "astar":
                 return -1 - self.heuristic(board)
+
+    def not_converging(self):
+        """
+        This is not mathematically true, it's just problems that take too long to solve.
+        The heuristic is either not acceptable or just terrible, might as well stop
+        """
+        return (self.board.size == 4 and self.cost > 20000) or (
+            self.board.size == 5 and self.cost > 60000
+        )

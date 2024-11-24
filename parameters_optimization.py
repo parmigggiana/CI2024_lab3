@@ -2,7 +2,6 @@ import csv
 import sys
 from concurrent.futures import CancelledError, Future, ProcessPoolExecutor, as_completed
 from pathlib import Path
-
 from typing import Iterable
 
 import matplotlib.pyplot as plt
@@ -16,9 +15,14 @@ from path_search import Solver
 from puzzle import Board
 
 FILENAME = "history.csv"
-SAMPLES = 10
-BOARD_SIZE = 5
-TIMEOUT = 300  # Some problems take too long to solve or don't converge, likely due to the heuristic being not acceptable with the given weights. Safe values on my machine are 20 for 4x4 and 500 for 5x5
+SAMPLES = 50
+BOARD_SIZE = 4
+
+# Some problems take too long to solve or don't converge, likely due to the heuristic being not acceptable with the given weights.
+# concurrent.futures.as_completed takes a timeout but it's for the whole process, not for each individual future.
+# Besides, process pools don't have a way to actually kill the processes that are taking too long, so it still waits for them to finish.
+# Thread pools have a way to cancel futures, but they don't have as much benefit as processes in this case.
+# For this reason I added a function in path_search to raise a CancelledError when the problem is taking too long.
 
 
 def process_main(weights, board):
@@ -28,18 +32,21 @@ def process_main(weights, board):
         "heuristic": improved_manhattan(board.size, weights),
         "plot": False,
     }
-    _, quality, cost = Solver(**instance).run()
+    try:
+        _, quality, cost = Solver(**instance).run()
+    except CancelledError:
+        return None, None, None, None
     return quality, cost, weights, board.size
 
 
-def explore_parameters(samples, filename, board_size, timeout=None):
+def explore_parameters(samples, filename, board_size):
     ranges = [
         (0, 1),
         (0, 1),
         (0, 1),
     ]
     futures: list[Future] = []
-    n = None
+    n = 0
     with tqdm.tqdm(
         desc="Generating exploration space", total=samples * board_size
     ) as pbar:
@@ -60,28 +67,21 @@ def explore_parameters(samples, filename, board_size, timeout=None):
             pbar.reset()
             pbar.set_description_str(f"Trying {samples} random weights")
             try:
-                for future in as_completed(fs=futures, timeout=timeout * samples):
-                    try:
-                        quality, cost, weights, size = future.result()
+                for future in as_completed(fs=futures):
+                    quality, cost, weights, size = future.result()
+                    if quality:
                         with open(filename, "a+") as f:
                             writer = csv.writer(f)
                             writer.writerow((*weights, quality, cost, size))
-                    except CancelledError:
-                        pass
-                    finally:
-                        pbar.update(1)
+                    else:
+                        n += 1
+                    pbar.update(1)
             except TimeoutError:
                 print("Shutting Down")
                 executor.shutdown(wait=False, cancel_futures=True)
-                n = len([f.cancelled() for f in futures])
-                print(executor._threads)
-                # for f in executor._threads:
-                #     exc = ctypes.py_object(SystemExit)
-                #     ctypes.pythonapi.PyThreadState_SetAsyncExc(
-                #         ctypes.c_long(f.ident), exc
-                #     )
+                n += len([f.cancelled() for f in futures])
 
-    if n:
+    if n > 0:
         print(f"Skipped {n} iterations due to timeout")
 
 
@@ -234,7 +234,6 @@ if __name__ == "__main__":
             filename=FILENAME,
             samples=SAMPLES,
             board_size=BOARD_SIZE,
-            timeout=TIMEOUT,
         )
 
     if any(x in ["-p", "--plot", "PLOT"] for x in sys.argv):

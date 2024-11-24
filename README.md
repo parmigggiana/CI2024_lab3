@@ -35,7 +35,7 @@ after configuring the constants `ITERATIONS` and `BOARD_SIZE` in the file.
 The results can be visualized, with normalization, by running the same file again with option `-p` or `--plot`. If you don't want to run new tests, also add `-s` or `--skip`
 By clicking somewhere on the plot you can see the precise values for each of the weights
 
-After evaluating the outputs, which can be found in `plots/`, I chose the weights `(0.15, 0.75, 0.10)`
+After evaluating the outputs, which can be found in `plots/`, I chose the weights `(0.15, 0.75, 0.10)` for board size 3 and `(0.30, 0.55, 0.15)` for bigger boards
 
 ## Examples
 
